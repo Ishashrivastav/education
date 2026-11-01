@@ -116,7 +116,7 @@ class GradeBook(Document):
 			WHERE student = %s
 				AND course = %s
 				AND academic_year = %s
-				AND ifnull(academic_term, '') = %s
+				AND coalesce(academic_term, '') = %s
 				AND name != %s
 			LIMIT 1
 			""",
@@ -466,7 +466,7 @@ def get_enrolled_students(
 	doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: dict | None
 ):
 	filters = filters or {}
-	conditions = ["ce.docstatus = 1", "ifnull(s.enabled, 1) = 1"]
+	conditions = ["ce.docstatus = 1", "coalesce(s.enabled, 1) = 1"]
 	values = {
 		"txt": "%{0}%".format(txt),
 		"_txt": txt.replace("%", ""),
@@ -489,11 +489,11 @@ def get_enrolled_students(
 		WHERE """
 		+ " AND ".join(conditions)
 		+ """
-			AND (s.name LIKE %(txt)s OR ifnull(s.student_name, '') LIKE %(txt)s)
+			AND (s.name LIKE %(txt)s OR coalesce(s.student_name, '') LIKE %(txt)s)
 		ORDER BY
-			if(locate(%(_txt)s, s.name), locate(%(_txt)s, s.name), 99999),
+			CASE WHEN locate(%(_txt)s, s.name) > 0 THEN locate(%(_txt)s, s.name) ELSE 99999 END,
 			s.student_name
-		LIMIT %(start)s, %(page_len)s
+		LIMIT %(page_len)s OFFSET %(start)s
 		"""
 	)
 	return frappe.db.sql(query, values)
@@ -519,7 +519,7 @@ def get_enrolled_courses(
 		conditions.append("ce.student_batch = %(student_batch)s")
 		values["student_batch"] = filters["student_batch"]
 	if filters.get("company"):
-		conditions.append("(ifnull(c.company, '') = '' OR c.company = %(company)s)")
+		conditions.append("(coalesce(c.company, '') = '' OR c.company = %(company)s)")
 		values["company"] = filters["company"]
 
 	values["start"] = start
@@ -532,11 +532,11 @@ def get_enrolled_courses(
 		WHERE """
 		+ " AND ".join(conditions)
 		+ """
-			AND (c.name LIKE %(txt)s OR ifnull(c.course_name, '') LIKE %(txt)s)
+			AND (c.name LIKE %(txt)s OR coalesce(c.course_name, '') LIKE %(txt)s)
 		ORDER BY
-			if(locate(%(_txt)s, c.name), locate(%(_txt)s, c.name), 99999),
+			CASE WHEN locate(%(_txt)s, c.name) > 0 THEN locate(%(_txt)s, c.name) ELSE 99999 END,
 			c.course_name
-		LIMIT %(start)s, %(page_len)s
+		LIMIT %(page_len)s OFFSET %(start)s
 		"""
 	)
 	return frappe.db.sql(query, values)
@@ -549,7 +549,7 @@ def _grade_book_exists(student, course, academic_year, academic_term=None):
 		WHERE student = %s
 			AND course = %s
 			AND academic_year = %s
-			AND ifnull(academic_term, '') = %s
+			AND coalesce(academic_term, '') = %s
 		LIMIT 1
 		""",
 		(student, course, academic_year, academic_term or ""),

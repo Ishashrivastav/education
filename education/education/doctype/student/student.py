@@ -222,14 +222,17 @@ class Student(Document):
 
 def get_timeline_data(doctype, name):
 	"""Return timeline for attendance"""
+	from frappe.query_builder import Interval
+	from frappe.query_builder.functions import Count, CurDate, UnixTimestamp
+
+	attendance = frappe.qb.DocType("Student Attendance")
 	return dict(
-		frappe.db.sql(
-			"""select unix_timestamp(`date`), count(*)
-		from `tabStudent Attendance` where
-			student=%s
-			and `date` > date_sub(curdate(), interval 1 year)
-			and docstatus = 1 and status = 'Present'
-			group by date""",
-			name,
-		)
+		frappe.qb.from_(attendance)
+		.select(UnixTimestamp(attendance.date), Count("*"))
+		.where(attendance.student == name)
+		.where(attendance.date > CurDate() - Interval(years=1))
+		.where(attendance.docstatus == 1)
+		.where(attendance.status == "Present")
+		.groupby(attendance.date)
+		.run()
 	)

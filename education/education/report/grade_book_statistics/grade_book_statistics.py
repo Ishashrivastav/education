@@ -107,7 +107,7 @@ def get_cohort_statistics(grade_book):
 		"gb.status = 'Computed'",
 		"gb.course = %(course)s",
 		"gb.academic_year = %(academic_year)s",
-		"ifnull(gb.academic_term, '') = %(academic_term)s",
+		"coalesce(gb.academic_term, '') = %(academic_term)s",
 	]
 	values = {
 		"course": grade_book.course,

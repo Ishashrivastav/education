@@ -74,7 +74,7 @@ class Fees(AccountsController):
 			select g.email_address
 			from `tabGuardian` g, `tabStudent Guardian` sg
 			where g.name = sg.guardian and sg.parent = %s and sg.parenttype = 'Student'
-			and ifnull(g.email_address, '')!=''
+			and coalesce(g.email_address, '')!=''
 		""",
 			self.student,
 		)
@@ -164,9 +164,9 @@ def get_fee_list(doctype, txt, filters, limit_start, limit_page_length=20, order
 			outstanding_amount, grand_total, currency
 			from `tabFees`
 			where student= %s and docstatus=1
-			order by due_date asc limit %s, %s
+			order by due_date asc limit %s offset %s
 			""",
-			(student[0][0], cint(limit_start), cint(limit_page_length)),
+			(student[0][0], cint(limit_page_length), cint(limit_start)),
 			as_dict=True,
 		)
 

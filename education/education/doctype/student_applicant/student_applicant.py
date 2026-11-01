@@ -93,8 +93,8 @@ class StudentApplicant(Document):
 			SELECT name FROM `tabStudent`
 			WHERE name != %s
 				AND (
-					lower(trim(ifnull(email_address, ''))) = %s
-					OR lower(trim(ifnull(student_email_id, ''))) = %s
+					lower(trim(coalesce(email_address, ''))) = %s
+					OR lower(trim(coalesce(student_email_id, ''))) = %s
 				)
 			LIMIT 1
 			""",

@@ -97,11 +97,11 @@ def faculty_query(doctype: str, txt: str, searchfield: str, start: int, page_len
 		SELECT name, faculty_name
 		FROM `tabFaculty`
 		WHERE name IN %(names)s
-			AND (name LIKE %(txt)s OR ifnull(faculty_name, '') LIKE %(txt)s)
+			AND (name LIKE %(txt)s OR coalesce(faculty_name, '') LIKE %(txt)s)
 		ORDER BY
-			if(locate(%(_txt)s, name), locate(%(_txt)s, name), 99999),
+			CASE WHEN locate(%(_txt)s, name) > 0 THEN locate(%(_txt)s, name) ELSE 99999 END,
 			faculty_name
-		LIMIT %(start)s, %(page_len)s
+		LIMIT %(page_len)s OFFSET %(start)s
 		""",
 		{
 			"names": faculty_names,
@@ -139,11 +139,11 @@ def subject_query(doctype: str, txt: str, searchfield: str, start: int, page_len
 		WHERE """
 		+ " AND ".join(conditions)
 		+ """
-			AND (s.name LIKE %(txt)s OR ifnull(s.subject_name, '') LIKE %(txt)s)
+			AND (s.name LIKE %(txt)s OR coalesce(s.subject_name, '') LIKE %(txt)s)
 		ORDER BY
-			if(locate(%(_txt)s, s.name), locate(%(_txt)s, s.name), 99999),
+			CASE WHEN locate(%(_txt)s, s.name) > 0 THEN locate(%(_txt)s, s.name) ELSE 99999 END,
 			s.subject_name
-		LIMIT %(start)s, %(page_len)s
+		LIMIT %(page_len)s OFFSET %(start)s
 		"""
 	)
 	return frappe.db.sql(query, values)
@@ -151,16 +151,15 @@ def subject_query(doctype: str, txt: str, searchfield: str, start: int, page_len
 
 def get_timeline_data(doctype, name):
 	"""Return timeline for subject schedules"""
+	from frappe.query_builder import Interval
+	from frappe.query_builder.functions import Count, CurDate, UnixTimestamp
+
+	schedule = frappe.qb.DocType("Subject Schedule")
 	return dict(
-		frappe.db.sql(
-			"""
-			SELECT unix_timestamp(`schedule_date`), count(*)
-			FROM `tabSubject Schedule`
-			WHERE
-				faculty=%s and
-				`schedule_date` > date_sub(curdate(), interval 1 year)
-			GROUP BY schedule_date
-		""",
-			name,
-		)
+		frappe.qb.from_(schedule)
+		.select(UnixTimestamp(schedule.schedule_date), Count("*"))
+		.where(schedule.faculty == name)
+		.where(schedule.schedule_date > CurDate() - Interval(years=1))
+		.groupby(schedule.schedule_date)
+		.run()
 	)

@@ -51,10 +51,10 @@ def get_program_courses(
 		+ get_match_cond(doctype)
 		+ """
         order by
-            if(locate(%(_txt)s, name), locate(%(_txt)s, name), 99999),
+            case when locate(%(_txt)s, name) > 0 then locate(%(_txt)s, name) else 99999 end,
             course_name asc,
             name asc
-        limit %(start)s, %(page_len)s"""
+        limit %(page_len)s offset %(start)s"""
 	)
 	return frappe.db.sql(
 		query,

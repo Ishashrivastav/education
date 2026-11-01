@@ -95,8 +95,8 @@ def _get_computed_grade_book(student, course, academic_year, academic_term=None,
 			AND student = %s
 			AND course = %s
 			AND academic_year = %s
-			AND (ifnull(academic_term, '') = '' OR academic_term = %s)
-			AND (ifnull(student_batch, '') = '' OR student_batch = %s)
+			AND (coalesce(academic_term, '') = '' OR academic_term = %s)
+			AND (coalesce(student_batch, '') = '' OR student_batch = %s)
 		LIMIT 1
 		""",
 		(

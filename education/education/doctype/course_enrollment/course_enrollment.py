@@ -402,7 +402,7 @@ class CourseEnrollment(Document):
 			"""
 			SELECT name FROM `tabCourse Enrollment`
 			WHERE course = %s
-				AND ifnull(student_batch, '') = %s
+				AND coalesce(student_batch, '') = %s
 				AND roll_number = %s
 				AND docstatus != 2
 				AND name != %s

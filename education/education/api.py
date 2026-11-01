@@ -254,13 +254,14 @@ def get_subject_schedule_events(start: str, end: str, filters: str | list | dict
 	"""
 	from frappe.desk.calendar import get_event_conditions
 
+	from frappe.utils import get_datetime
+
 	conditions = get_event_conditions("Subject Schedule", filters)
 
 	query = (
 		"""select name, subject, title, color,
-			timestamp(schedule_date, from_time) as from_time,
-			timestamp(schedule_date, to_time) as to_time,
-			room, student_batch, faculty, 0 as 'allDay'
+			schedule_date, from_time, to_time,
+			room, student_batch, faculty
 		from `tabSubject Schedule`
 		where ( schedule_date between %(start)s and %(end)s )
 		"""
@@ -272,6 +273,12 @@ def get_subject_schedule_events(start: str, end: str, filters: str | list | dict
 		as_dict=True,
 		update={"allDay": 0},
 	)
+	for row in data:
+		if row.get("schedule_date") and row.get("from_time") is not None:
+			row["from_time"] = get_datetime(f"{row.schedule_date} {row.from_time}")
+		if row.get("schedule_date") and row.get("to_time") is not None:
+			row["to_time"] = get_datetime(f"{row.schedule_date} {row.to_time}")
+		row.pop("schedule_date", None)
 
 	return data
 
